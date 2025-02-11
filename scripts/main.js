@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // Captura os dados da baterias
+    // Captura os dados da bateria
     if (navigator.getBattery) {
         navigator.getBattery().then(battery => {
             atualizarBateria(battery);
