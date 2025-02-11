@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detector de Batimentos Cardíacos</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        video { transform: scaleX(-1); }
+        #heartRate { font-size: 24px; color: red; }
+    </style>
+</head>
+<body>
+    <h1>Detector de Frequência Cardíaca</h1>
+    <p>Coloque o dedo na câmera e aguarde...</p>
+    <video id="video" width="320" height="240" autoplay></video>
+    <p>Frequência Cardíaca: <span id="heartRate">--</span> BPM</p>
+
+    <script>
+        const video = document.getElementById("video");
+        const heartRateDisplay = document.getElementById("heartRate");
+        let lastTimestamps = [];
+        let lastRedValues = [];
+
+        async function startCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            video.srcObject = stream;
+            requestAnimationFrame(processFrame);
+        }
+
+        function getRedIntensity(frame) {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.width = video.width;
+            canvas.height = video.height;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            let totalRed = 0, count = 0;
+
+            for (let i = 0; i < frameData.length; i += 4) {
+                totalRed += frameData[i]; // Pega o valor do canal vermelho (R)
+                count++;
+            }
+
+            return totalRed / count;
+        }
+
+        function processFrame() {
+            const now = Date.now();
+            const redIntensity = getRedIntensity(video);
+
+            lastTimestamps.push(now);
+            lastRedValues.push(redIntensity);
+
+            if (lastTimestamps.length > 100) {
+                lastTimestamps.shift();
+                lastRedValues.shift();
+            }
+
+            if (lastTimestamps.length > 30) {
+                let peaks = 0;
+                for (let i = 1; i < lastRedValues.length - 1; i++) {
+                    if (lastRedValues[i] > lastRedValues[i - 1] && lastRedValues[i] > lastRedValues[i + 1]) {
+                        peaks++;
+                    }
+                }
+
+                const duration = (lastTimestamps[lastTimestamps.length - 1] - lastTimestamps[0]) / 1000;
+                const bpm = Math.round((peaks / duration) * 60);
+                heartRateDisplay.textContent = bpm;
+            }
+
+            requestAnimationFrame(processFrame);
+        }
+
+        startCamera();
+    </script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Provador Virtual de Batons</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        video { transform: scaleX(-1); display: block; margin: auto; }
+        canvas { position: absolute; top: 0; left: 0; }
+        .color-btn { width: 30px; height: 30px; border-radius: 50%; margin: 5px; display: inline-block; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Provador Virtual de Batons 💄</h1>
+    <p>Escolha uma cor de batom e veja em tempo real!</p>
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas"></canvas>
+    <div id="colors">
+        <div class="color-btn" style="background-color: red;" onclick="setLipstickColor('red')"></div>
+        <div class="color-btn" style="background-color: pink;" onclick="setLipstickColor('pink')"></div>
+        <div class="color-btn" style="background-color: purple;" onclick="setLipstickColor('purple')"></div>
+        <div class="color-btn" style="background-color: brown;" onclick="setLipstickColor('brown')"></div>
+        <div class="color-btn" style="background-color: nude;" onclick="setLipstickColor('#c8a165')"></div>
+    </div>
+
+    <script>
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        let model, lipstickColor = "red";
+
+        async function startCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+        }
+
+        async function loadModel() {
+            model = await faceLandmarksDetection.createDetector(faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh);
+        }
+
+        function setLipstickColor(color) {
+            lipstickColor = color;
+        }
+
+        async function detectFace() {
+            if (!model) return;
+            const faces = await model.estimateFaces(video, false);
+            canvas.width = video.width;
+            canvas.height = video.height;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            faces.forEach(face => {
+                ctx.fillStyle = lipstickColor;
+                ctx.globalAlpha = 0.5;
+
+                const lips = face.keypoints.slice(61, 81);
+                ctx.beginPath();
+                lips.forEach((point, index) => {
+                    if (index === 0) ctx.moveTo(point.x, point.y);
+                    else ctx.lineTo(point.x, point.y);
+                });
+                ctx.closePath();
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            });
+
+            requestAnimationFrame(detectFace);
+        }
+
+        startCamera();
+        loadModel().then(() => detectFace());
+    </script>
+</body>
+</html>
