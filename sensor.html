@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta author="Vitor Nunciatelli" mail="nunciatelli54@gmail.com" year="2025">
+    <title>Status do Dispositivo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Informações do Dispositivo</h1>
+        <p><strong>Bateria:</strong> <span id="bateria">Carregando...</span></p>
+        <p><strong>Carregando:</strong> <span id="carregando">-</span></p>
+        <p><strong>Acelerômetro:</strong></p>
+        <p>X: <span id="accelX">0</span></p>
+        <p>Y: <span id="accelY">0</span></p>
+        <p>Z: <span id="accelZ">0</span></p>
+        <p><strong>Giroscópio:</strong></p>
+        <p>Alpha: <span id="gyroAlpha">0</span></p>
+        <p>Beta: <span id="gyroBeta">0</span></p>
+        <p>Gamma: <span id="gyroGamma">0</span></p>
+        <p><strong>Geolocalização:</strong></p>
+        <p>Latitude: <span id="latitude">-</span></p>
+        <p>Longitude: <span id="longitude">-</span></p>
+        <p>Precisão: <span id="precisao">-</span></p>
+        <button id="requestPermission">Ativar Sensores</button>
+    </div>
+
+    <script>
+        // Captura os dados da bateria
+        if (navigator.getBattery) {
+            navigator.getBattery().then(battery => {
+                document.getElementById("bateria").textContent = Math.round(battery.level * 100) + "%";
+                document.getElementById("carregando").textContent = battery.charging ? "Sim" : "Não";
+                
+                battery.addEventListener("levelchange", () => {
+                    document.getElementById("bateria").textContent = Math.round(battery.level * 100) + "%";
+                });
+                
+                battery.addEventListener("chargingchange", () => {
+                    document.getElementById("carregando").textContent = battery.charging ? "Sim" : "Não";
+                });
+            });
+        } else {
+            document.getElementById("bateria").textContent = "Não suportado";
+            document.getElementById("carregando").textContent = "-";
+        }
+
+        // Captura os dados do acelerômetro e giroscópio com permissão explícita
+        document.getElementById("requestPermission").addEventListener("click", () => {
+            if (typeof DeviceMotionEvent.requestPermission === "function") {
+                DeviceMotionEvent.requestPermission().then(permissionState => {
+                    if (permissionState === "granted") {
+                        ativarSensores();
+                    }
+                }).catch(console.error);
+            } else {
+                ativarSensores();
+            }
+        });
+
+        function ativarSensores() {
+            window.addEventListener("devicemotion", event => {
+                document.getElementById("accelX").textContent = event.accelerationIncludingGravity.x.toFixed(2);
+                document.getElementById("accelY").textContent = event.accelerationIncludingGravity.y.toFixed(2);
+                document.getElementById("accelZ").textContent = event.accelerationIncludingGravity.z.toFixed(2);
+            });
+            
+            window.addEventListener("deviceorientation", event => {
+                document.getElementById("gyroAlpha").textContent = event.alpha.toFixed(2);
+                document.getElementById("gyroBeta").textContent = event.beta.toFixed(2);
+                document.getElementById("gyroGamma").textContent = event.gamma.toFixed(2);
+            });
+        }
+
+        // Captura a geolocalização
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(position => {
+                document.getElementById("latitude").textContent = position.coords.latitude.toFixed(5);
+                document.getElementById("longitude").textContent = position.coords.longitude.toFixed(5);
+                document.getElementById("precisao").textContent = position.coords.accuracy.toFixed(2) + "m";
+            }, error => {
+                console.error("Erro ao obter localização:", error);
+            }, { enableHighAccuracy: true, maximumAge: 10000 });
+        } else {
+            document.getElementById("latitude").textContent = "Não suportado";
+            document.getElementById("longitude").textContent = "Não suportado";
+            document.getElementById("precisao").textContent = "-";
+        }
+    </script>
+</body>
+</html>
